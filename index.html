@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vanilla Prepaid - Manage Your Card</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333; background: #fff; }
+
+  .alert-banner {
+    background: #1a1a1a; color: #fff; text-align: center;
+    padding: 10px 24px; font-size: 12.5px; line-height: 1.6;
+  }
+
+  /* ── Shared inner wrapper: constrains content to 900px, same as main ── */
+  .inner {
+    max-width: 900px; margin: 0 auto; padding: 0 20px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .nav-bar { background: #cc0000; padding: 5px 0; }
+  .nav-bar .inner { padding-top: 3px; padding-bottom: 3px; }
+  .nav-bar-left { display: flex; align-items: center; }
+  .nav-bar-left a { color: #fff; text-decoration: none; font-size: 12px; font-weight: 600; }
+  .nav-bar-left a.active { text-decoration: underline; }
+  .nav-bar-left .pipe { color: rgba(255,255,255,0.5); margin: 0 8px; }
+  .nav-bar-right { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .nav-bar-right a { color: #fff; text-decoration: none; font-weight: 600; }
+  .nav-bar-right .sep { color: rgba(255,255,255,0.5); }
+
+  .header { border-bottom: 1px solid #e0e0e0; padding: 10px 0; }
+  .header .inner { padding-top: 6px; padding-bottom: 6px; }
+  .header-logo { display: inline-flex; align-items: center; }
+  .header-logo img { height: 42px; display: block; }
+  .header-links { display: flex; gap: 28px; align-items: center; }
+  .header-links a { text-decoration: none; color: #333; font-size: 14px; font-weight: 600; }
+  .header-links a:hover { color: #cc0000; }
+
+  .red-line { height: 3px; background: #cc0000; }
+
+  .main-content { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+  .page-title { font-size: 26px; color: #cc0000; font-weight: 700; margin-bottom: 20px; }
+
+  /* ── Card section ─────────────────────────────── */
+  .card-section { display: flex; align-items: flex-start; margin-bottom: 22px; }
+  .card-image { flex-shrink: 0; margin-right: 28px; }
+  .card-image img { width: 215px; height: 138px; border-radius: 8px; display: block; }
+  .card-details { flex: 1; }
+
+  .balance-label { font-size: 14px; font-weight: normal; margin-bottom: 2px; }
+  .balance-amount { display: flex; align-items: flex-start; font-weight: 700; color: #222; margin-bottom: 14px; line-height: 1; }
+  .balance-amount sup { font-size: 22px; margin-top: 5px; margin-right: 1px; }
+  .balance-amount .bal-val { font-size: 44px; }
+
+  .card-detail-row { margin-bottom: 5px; font-size: 14px; font-weight: normal; }
+  .v-bold   { font-weight: 700; }
+  .v-normal { font-weight: normal; }
+  .v-big    { font-size: 15px; font-weight: 700; }
+
+  .card-detail-row a {
+    color: #cc0000; text-decoration: none; font-size: 13px;
+    font-weight: normal; margin-left: 5px; cursor: pointer;
+  }
+  .card-detail-row a:hover { text-decoration: underline; }
+
+  /* Editable spans */
+  .editable { cursor: pointer; border-bottom: 1px dashed transparent; transition: border-color .15s; display: inline; }
+  .editable:hover { border-bottom-color: #aaa; }
+  .edit-input {
+    border: 1px solid #cc0000; border-radius: 3px; padding: 1px 5px;
+    font-size: 14px; font-family: Arial, Helvetica, sans-serif;
+    outline: none; display: none;
+  }
+  .edit-input.v-bold { font-weight: 700; }
+  .edit-input.v-big  { font-size: 15px; font-weight: 700; }
+  .edit-input.bal-input { font-size: 44px; font-weight: 700; width: 140px; }
+  .edit-input.show { display: inline-block; }
+  .hidden { display: none !important; }
+
+  .check-balance-link { color: #cc0000; text-decoration: none; font-size: 13px; margin-top: 10px; display: inline-block; }
+  .check-balance-link:hover { text-decoration: underline; }
+
+  /* ── Print button ─────────────────────────────── */
+  .print-btn-area { margin-left: auto; flex-shrink: 0; position: relative; }
+  .print-btn {
+    display: flex; align-items: center; gap: 5px;
+    color: #cc0000; cursor: pointer; font-size: 13px; font-weight: 600;
+    background: none; border: none; padding: 4px 6px; border-radius: 3px; white-space: nowrap;
+  }
+  .print-btn:hover { background: #fdf0f0; }
+  /* Use the actual print_icon.png, force white background, multiply blend removes bg */
+  .print-icon-img {
+    width: 20px; height: 20px; display: block;
+    background: #fff; border-radius: 2px;
+    mix-blend-mode: multiply;
+  }
+  .printer-icon { width: 18px; height: 18px; }
+
+  /* ── Generator menu ───────────────────────────── */
+  .gen-menu {
+    display: none; position: absolute; top: 36px; right: 0;
+    background: #fff; border: 1px solid #ccc; border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.2); padding: 16px 18px;
+    z-index: 200; min-width: 310px;
+  }
+  .gen-menu.open { display: block; }
+  .gen-menu h4 { font-size: 13px; font-weight: 700; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 12px; color: #cc0000; }
+  .gen-menu label { font-size: 12px; color: #555; display: block; margin: 8px 0 3px; font-weight: 600; }
+  .gen-menu input, .gen-menu select {
+    width: 100%; padding: 5px 8px; border: 1px solid #ccc; border-radius: 4px;
+    font-size: 13px; font-family: monospace; letter-spacing: 1px;
+    background: #fff; color: #333;
+  }
+  .gen-menu select { font-family: Arial, sans-serif; letter-spacing: 0; cursor: pointer; }
+  .gen-row { display: flex; gap: 10px; }
+  .gen-row > div { flex: 1; }
+
+  /* Amount selector buttons */
+  .amount-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 4px;
+  }
+  .amt-btn {
+    background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px;
+    padding: 6px 4px; font-size: 12px; font-weight: 700; color: #444;
+    cursor: pointer; text-align: center; transition: all .15s;
+  }
+  .amt-btn:hover  { background: #fde8e8; border-color: #cc0000; color: #cc0000; }
+  .amt-btn.selected { background: #cc0000; border-color: #cc0000; color: #fff; }
+
+  .gen-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .btn-gen    { flex:1; min-width: 80px; background:#cc0000; color:#fff; border:none; padding:7px 10px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; }
+  .btn-gen:hover { background:#aa0000; }
+  .btn-save   { flex:1; min-width: 80px; background:#2a7a2a; color:#fff; border:none; padding:7px 10px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; }
+  .btn-save:hover { background:#1d561d; }
+  .btn-reset  { flex:1; min-width: 80px; background:#666; color:#fff; border:none; padding:7px 10px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; }
+  .btn-reset:hover { background:#444; }
+  .btn-apply  { flex:1; min-width: 80px; background:#1a5fa8; color:#fff; border:none; padding:7px 10px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; }
+  .btn-apply:hover { background:#134a87; }
+  .btn-cls    { background:none; border:1px solid #ccc; padding:7px 10px; border-radius:4px; cursor:pointer; font-size:12px; color:#666; }
+  .btn-cls:hover { background:#f5f5f5; }
+
+  .save-notice {
+    font-size: 11px; color: #2a7a2a; text-align: center;
+    margin-top: 8px; height: 14px; font-weight: 600;
+  }
+
+  .divider { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+
+  /* ── Tabs ─────────────────────────────────────── */
+  .tabs { display: flex; margin-bottom: 24px; }
+  .tab {
+    padding: 9px 18px; cursor: pointer; font-size: 13px; font-weight: 600;
+    color: #333; border: 1px solid #ddd; background: #f2f2f2; margin-right: -1px; user-select: none;
+  }
+  .tab.active { background: #cc0000; color: #fff; border-color: #cc0000; }
+  .tab:hover:not(.active) { background: #e5e5e5; }
+
+  .section-title { font-size: 18px; font-weight: 700; color: #cc0000; margin-bottom: 14px; }
+
+  /* ── Balance summary ──────────────────────────── */
+  .balance-grid { display: flex; gap: 30px; }
+  .balance-table { flex: 1; }
+  .balance-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; font-size: 13px; font-weight: 700;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .balance-row:last-child { border-bottom: none; }
+  .balance-row .right-cell { display: flex; align-items: center; }
+
+  .bs-editable { cursor: pointer; border-bottom: 1px dashed transparent; transition: border-color .15s; font-weight: 700; }
+  .bs-editable:hover { border-bottom-color: #aaa; }
+  .bs-input {
+    border: 1px solid #cc0000; border-radius: 3px; padding: 1px 5px;
+    font-size: 13px; font-weight: 700; font-family: Arial, Helvetica, sans-serif;
+    outline: none; width: 90px; display: none;
+  }
+  .bs-input.show { display: inline-block; }
+
+  /* ── Tips ─────────────────────────────────────── */
+  .tips-box { width: 200px; flex-shrink: 0; }
+  .tips-title { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 10px; }
+  .tip-item {
+    background: #f7f7f7; border: 1px solid #e0e0e0;
+    padding: 8px 12px; margin-bottom: 6px; border-radius: 3px;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+  }
+  .tip-item:hover { background: #eee; }
+  .tip-plus  { color: #cc0000; font-weight: normal; font-size: 16px; line-height: 1; }
+  .tip-label { color: #cc0000; font-weight: normal; font-size: 13px; }
+
+  /* ── Transactions ─────────────────────────────── */
+  .transactions-header { display:flex; justify-content:space-between; align-items:center; margin:22px 0 8px; }
+  .transactions-title  { font-size:18px; font-weight:700; color:#cc0000; }
+  .print-tx-btn {
+    display:flex; align-items:center; gap:6px; color:#cc0000;
+    font-size:13px; font-weight:600; background:none; border:none; cursor:pointer; padding:4px 6px;
+  }
+  .unauth-link  { color:#cc0000; font-weight:700; font-size:13px; text-decoration:underline; cursor:pointer; display:block; margin-bottom:6px; }
+  .tx-note      { font-size:13px; color:#333; line-height:1.6; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; z-index:100; }
+  .overlay.open { display:block; }
+</style>
+</head>
+<body>
+
+<!-- ALERT BANNER -->
+<div class="alert-banner">
+  If you need help due to a declined transaction and have sufficient funds to cover the purchase, your Prepaid Card was most likely declined due to<br>
+  security and safety measures in place to protect your funds.<br>
+  Use your Card in-person or at a different merchant online and make sure to include the card security code.
+</div>
+
+<!-- NAV BAR -->
+<div class="nav-bar">
+  <div class="inner">
+    <div class="nav-bar-left">
+      <a href="#" class="active">Vanilla Prepaid Mastercard® OneVanilla Prepaid Mastercard®</a>
+      <span class="pipe">|</span>
+      <a href="#">Vanilla Visa® Prepaid Card</a>
+    </div>
+    <div class="nav-bar-right">
+      <a href="#">Sign Out</a>
+      <a href="#">English</a>
+      <span class="sep">|</span>
+      <a href="#">Français</a>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="inner">
+    <div class="header-logo"><img src="VP_Logo_Main.png" alt="Vanilla Prepaid"></div>
+    <div class="header-links">
+      <a href="#">Where To Buy</a>
+      <a href="#">Help</a>
+    </div>
+  </div>
+</div>
+<div class="red-line"></div>
+
+<!-- MAIN -->
+<div class="main-content">
+  <div class="page-title">Manage Your Card</div>
+
+  <div class="card-section">
+    <div class="card-image">
+      <img src="image_carte.png" alt="Vanilla Prepaid Card">
+    </div>
+
+    <div class="card-details">
+      <div class="balance-label">Available Balance</div>
+      <div class="balance-amount">
+        <sup>$</sup>
+        <span class="bal-val v-bold editable" id="balSpan" onclick="startEdit('bal')">7.89</span>
+        <input class="edit-input v-bold bal-input" id="balInput" type="text"
+               onblur="commitEdit('bal')" onkeydown="editKey(event,'bal')">
+      </div>
+
+      <div class="card-detail-row">
+        Card Number:&nbsp;<span class="v-bold" id="cardNumSpan">**** 5663</span>
+        <a href="#" id="toggleBtn" onclick="toggleCard(event)">Show</a> |
+        <a href="#" onclick="copyCard(event)">Copy</a>
+      </div>
+
+      <div class="card-detail-row">
+        Expiration Date:&nbsp;<span class="v-big editable" id="expSpan" onclick="startEdit('exp')">10/29</span>
+        <input class="edit-input v-big" id="expInput" type="text" placeholder="MM/YY"
+               onblur="commitEdit('exp')" onkeydown="editKey(event,'exp')">
+      </div>
+
+      <div class="card-detail-row">
+        CVV:&nbsp;<span class="v-bold editable" id="cvvSpan" onclick="startEdit('cvv')">706</span>
+        <input class="edit-input v-bold" id="cvvInput" type="text" placeholder="XXX"
+               onblur="commitEdit('cvv')" onkeydown="editKey(event,'cvv')">
+      </div>
+
+      <div class="card-detail-row">Status: <span class="v-bold">ACTIVE</span></div>
+
+      <a href="#" class="check-balance-link">Check balance for another card</a>
+    </div>
+
+    <!-- Print / Generator -->
+    <div class="print-btn-area">
+      <button class="print-btn" onclick="toggleGenMenu(event)">
+        <!-- Use the provided print_icon.png -->
+        <img src="print_icon.png" class="print-icon-img" alt="Print">
+        Print
+      </button>
+
+      <!-- Secret Generator Menu -->
+      <div class="gen-menu" id="genMenu">
+        <h4>🎲 Card Generator</h4>
+
+        <!-- Card amount selector -->
+        <label>Card Amount</label>
+        <div class="amount-grid" id="amountGrid">
+          <button class="amt-btn" data-val="25"  onclick="selectAmount(25)">$25</button>
+          <button class="amt-btn" data-val="50"  onclick="selectAmount(50)">$50</button>
+          <button class="amt-btn" data-val="75"  onclick="selectAmount(75)">$75</button>
+          <button class="amt-btn" data-val="100" onclick="selectAmount(100)">$100</button>
+          <button class="amt-btn" data-val="150" onclick="selectAmount(150)">$150</button>
+          <button class="amt-btn" data-val="200" onclick="selectAmount(200)">$200</button>
+          <button class="amt-btn selected" data-val="250" onclick="selectAmount(250)">$250</button>
+        </div>
+
+        <label>Card Number <span style="color:#999;font-weight:400">(auto-generated)</span></label>
+        <input type="text" id="genNum" placeholder="Click 🎲 Random to generate" readonly
+               style="background:#f9f9f9; cursor:default; letter-spacing:2px;">
+
+        <div class="gen-row">
+          <div>
+            <label>Expiration</label>
+            <input type="text" id="genExp" placeholder="MM/YY" maxlength="5">
+          </div>
+          <div>
+            <label>CVV</label>
+            <input type="text" id="genCvv" placeholder="XXX" maxlength="3">
+          </div>
+        </div>
+
+        <label>Balance (auto = card amount)</label>
+        <input type="text" id="genBal" placeholder="Auto" style="color:#888; background:#f9f9f9;" readonly>
+
+        <div class="gen-actions">
+          <button class="btn-gen"   onclick="generateRandom()">🎲 Random</button>
+          <button class="btn-apply" onclick="applyCard()">✓ Apply</button>
+        </div>
+        <div class="gen-actions" style="margin-top:6px;">
+          <button class="btn-save"  onclick="saveConfig()">💾 Save</button>
+          <button class="btn-reset" onclick="resetConfig()">↺ Reset</button>
+          <button class="btn-cls"   onclick="closeGenMenu()">✕ Close</button>
+        </div>
+
+        <div class="save-notice" id="saveNotice"></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('balance',this)">Balance and Transactions</div>
+    <div class="tab" onclick="showTab('problem',this)">Report a Problem</div>
+    <div class="tab" onclick="showTab('track',this)">Track a Problem</div>
+  </div>
+
+  <!-- TAB: Balance & Transactions -->
+  <div class="tab-content active" id="tab-balance">
+    <div class="section-title">Balance Summary</div>
+    <div class="balance-grid">
+      <div class="balance-table">
+
+        <div class="balance-row">
+          <span>Activated</span>
+          <span id="bsActivated"></span>
+        </div>
+
+        <div class="balance-row">
+          <span>Expiration Date</span>
+          <div class="right-cell">
+            <span class="bs-editable" id="bsExp" onclick="startBs('bsExp')">10/2029</span>
+            <input class="bs-input" id="bsExpI" onblur="commitBs('bsExp')" onkeydown="bsKey(event,'bsExp')">
+          </div>
+        </div>
+
+        <div class="balance-row">
+          <span>Original Value</span>
+          <div class="right-cell">
+            <span class="bs-editable" id="bsOrig" onclick="startBs('bsOrig')">$50.00</span>
+            <input class="bs-input" id="bsOrigI" onblur="commitBs('bsOrig')" onkeydown="bsKey(event,'bsOrig')">
+          </div>
+        </div>
+
+        <div class="balance-row">
+          <span>Pending Transactions</span>
+          <div class="right-cell">
+            <span class="bs-editable" id="bsPend" onclick="startBs('bsPend')">$0.00</span>
+            <input class="bs-input" id="bsPendI" onblur="commitBs('bsPend')" onkeydown="bsKey(event,'bsPend')">
+          </div>
+        </div>
+
+        <div class="balance-row">
+          <span>Purchases</span>
+          <div class="right-cell">
+            <!-- Purchases: always $0.00 for new card, not editable via generator but inline editable -->
+            <span class="bs-editable" id="bsPurch" onclick="startBs('bsPurch')">$0.00</span>
+            <input class="bs-input" id="bsPurchI" onblur="commitBs('bsPurch')" onkeydown="bsKey(event,'bsPurch')">
+          </div>
+        </div>
+
+        <div class="balance-row">
+          <span>Total Credits</span>
+          <div class="right-cell">
+            <span class="bs-editable" id="bsCred" onclick="startBs('bsCred')">$50.00</span>
+            <input class="bs-input" id="bsCredI" onblur="commitBs('bsCred')" onkeydown="bsKey(event,'bsCred')">
+          </div>
+        </div>
+
+        <div class="balance-row">
+          <span>Available Balance:</span>
+          <div class="right-cell">
+            <span class="bs-editable" id="bsBal" onclick="startBs('bsBal')">$7.89</span>
+            <input class="bs-input" id="bsBalI" onblur="commitBs('bsBal')" onkeydown="bsKey(event,'bsBal')">
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tips-box">
+        <div class="tips-title">Vanilla Prepaid Card Tips</div>
+        <div class="tip-item">
+          <span class="tip-plus">+</span>
+          <span class="tip-label">Shopping Online</span>
+        </div>
+        <div class="tip-item">
+          <span class="tip-plus">+</span>
+          <span class="tip-label">Dining Out</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="transactions-header">
+      <div class="transactions-title">Transactions</div>
+      <button class="print-tx-btn" onclick="window.print()">
+        <img src="print_icon.png" class="print-icon-img" alt="Print">
+        Print Transactions
+      </button>
+    </div>
+    <a class="unauth-link" href="#">Report an Unauthorized Transaction</a>
+    <p class="tx-note">
+      If you need to report an unauthorized transaction, you can click above to open a case for us to research your
+      problem. If you have an issue with goods or services you purchased, please contact Customer Care using the
+      phone number located on the back of your card.
+    </p>
+  </div>
+
+  <div class="tab-content" id="tab-problem">
+    <div class="section-title">Report a Problem</div>
+    <p style="font-size:13px;line-height:1.6;margin-top:10px;">
+      If you have an issue with your Vanilla Prepaid card, please use the form below to report it.
+      Our team will review your case and get back to you within 3–5 business days.
+    </p>
+  </div>
+
+  <div class="tab-content" id="tab-track">
+    <div class="section-title">Track a Problem</div>
+    <p style="font-size:13px;line-height:1.6;margin-top:10px;">
+      Enter your case number to track the status of a reported problem.
+    </p>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeGenMenu()"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// DEFAULTS — original factory values
+// ══════════════════════════════════════════════════
+const DEFAULTS = {
+  full:    '4850 9701 0771 5663',
+  last4:   '5663',
+  expiry:  '10/29',
+  cvv:     '706',
+  balance: '7.89',
+  original:'50.00',
+  credits: '50.00',
+  purchases:'0.00',
+  pending: '0.00',
+  bsExp:   '10/2029'
+};
+
+// Working card state (will be overwritten by saved config on load)
+let card = Object.assign({}, DEFAULTS, { shown: false });
+
+// Selected amount in generator
+let selectedAmount = 250;
+
+// ══════════════════════════════════════════════════
+// TODAY'S DATE
+// ══════════════════════════════════════════════════
+(function() {
+  const d = new Date();
+  const s = String(d.getMonth()+1).padStart(2,'0') +'/'
+          + String(d.getDate()).padStart(2,'0')     +'/'
+          + d.getFullYear();
+  document.getElementById('bsActivated').textContent = s;
+})();
+
+// ══════════════════════════════════════════════════
+// RENDER — push card state to all DOM elements
+// ══════════════════════════════════════════════════
+function renderAll() {
+  document.getElementById('cardNumSpan').textContent = card.shown ? card.full : '**** '+card.last4;
+  document.getElementById('toggleBtn').textContent   = card.shown ? 'Hide' : 'Show';
+  document.getElementById('expSpan').textContent     = card.expiry;
+  document.getElementById('cvvSpan').textContent     = card.cvv;
+  document.getElementById('balSpan').textContent     = parseFloat(card.balance).toFixed(2);
+
+  document.getElementById('bsExp').textContent   = card.bsExp;
+  document.getElementById('bsOrig').textContent  = '$' + parseFloat(card.original).toFixed(2);
+  document.getElementById('bsCred').textContent  = '$' + parseFloat(card.credits).toFixed(2);
+  document.getElementById('bsPurch').textContent = '$' + parseFloat(card.purchases).toFixed(2);
+  document.getElementById('bsPend').textContent  = '$' + parseFloat(card.pending).toFixed(2);
+  document.getElementById('bsBal').textContent   = '$' + parseFloat(card.balance).toFixed(2);
+}
+
+// ══════════════════════════════════════════════════
+// LOAD SAVED CONFIG
+// ══════════════════════════════════════════════════
+(function loadSaved() {
+  try {
+    const saved = localStorage.getItem('vanillaCardConfig');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.assign(card, parsed, { shown: false });
+    }
+  } catch(e) {}
+  renderAll();
+})();
+
+// ══════════════════════════════════════════════════
+// SHOW / HIDE CARD NUMBER
+// ══════════════════════════════════════════════════
+function toggleCard(e) {
+  e.preventDefault();
+  card.shown = !card.shown;
+  document.getElementById('cardNumSpan').textContent = card.shown ? card.full : '**** '+card.last4;
+  document.getElementById('toggleBtn').textContent   = card.shown ? 'Hide' : 'Show';
+}
+function copyCard(e) { e.preventDefault(); navigator.clipboard.writeText(card.full).catch(()=>{}); }
+
+// ══════════════════════════════════════════════════
+// INLINE EDIT — card detail rows
+// ══════════════════════════════════════════════════
+const editMap = {
+  bal: { span:'balSpan',  inp:'balInput',  prop:'balance' },
+  exp: { span:'expSpan',  inp:'expInput',  prop:'expiry'  },
+  cvv: { span:'cvvSpan',  inp:'cvvInput',  prop:'cvv'     }
+};
+function startEdit(id) {
+  const m=editMap[id], sp=document.getElementById(m.span), ip=document.getElementById(m.inp);
+  sp.classList.add('hidden'); ip.value=card[m.prop]; ip.classList.add('show'); ip.focus(); ip.select();
+}
+function commitEdit(id) {
+  const m=editMap[id], sp=document.getElementById(m.span), ip=document.getElementById(m.inp);
+  const v=ip.value.trim();
+  if (v) {
+    card[m.prop]=v;
+    if (id==='bal') {
+      const n=parseFloat(v)||0; const s=n.toFixed(2);
+      sp.textContent=s; card.balance=s;
+      document.getElementById('bsBal').textContent='$'+s;
+    } else if (id==='exp') {
+      sp.textContent=v;
+      const pts=v.split('/');
+      const long=(pts.length===2&&pts[1].length===2)?pts[0]+'/20'+pts[1]:v;
+      card.bsExp=long; document.getElementById('bsExp').textContent=long;
+    } else { sp.textContent=v; }
+  }
+  ip.classList.remove('show'); sp.classList.remove('hidden');
+}
+function editKey(e,id) {
+  if(e.key==='Enter')  { e.preventDefault(); commitEdit(id); }
+  if(e.key==='Escape') {
+    document.getElementById(editMap[id].inp).classList.remove('show');
+    document.getElementById(editMap[id].span).classList.remove('hidden');
+  }
+}
+
+// ══════════════════════════════════════════════════
+// INLINE EDIT — Balance Summary rows
+// ══════════════════════════════════════════════════
+// Maps span id to card property
+const bsPropMap = {
+  bsExp:  'bsExp', bsOrig: 'original', bsPend: 'pending',
+  bsPurch:'purchases', bsCred: 'credits', bsBal:  'balance'
+};
+function startBs(id) {
+  const sp=document.getElementById(id), ip=document.getElementById(id+'I');
+  sp.classList.add('hidden'); ip.value=sp.textContent; ip.classList.add('show'); ip.focus(); ip.select();
+}
+function commitBs(id) {
+  const sp=document.getElementById(id), ip=document.getElementById(id+'I');
+  const v=ip.value.trim();
+  if (v) {
+    sp.textContent=v;
+    if (bsPropMap[id]) card[bsPropMap[id]]=v.replace('$','');
+    // Keep main balance in sync with bsBal
+    if (id==='bsBal') {
+      const n=parseFloat(v.replace('$',''))||0;
+      card.balance=n.toFixed(2);
+      document.getElementById('balSpan').textContent=n.toFixed(2);
+    }
+  }
+  ip.classList.remove('show'); sp.classList.remove('hidden');
+}
+function bsKey(e,id) {
+  if(e.key==='Enter')  { e.preventDefault(); commitBs(id); }
+  if(e.key==='Escape') {
+    document.getElementById(id+'I').classList.remove('show');
+    document.getElementById(id).classList.remove('hidden');
+  }
+}
+
+// ══════════════════════════════════════════════════
+// GENERATOR — Amount selector
+// ══════════════════════════════════════════════════
+function selectAmount(val) {
+  selectedAmount = val;
+  document.querySelectorAll('.amt-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.val) === val);
+  });
+  document.getElementById('genBal').value = val.toFixed ? val.toFixed(2) : parseFloat(val).toFixed(2);
+}
+
+// ══════════════════════════════════════════════════
+// GENERATOR — Random card (always new/unused)
+// ══════════════════════════════════════════════════
+function rnd(n) { let s=''; for(let i=0;i<n;i++) s+=Math.floor(Math.random()*10); return s; }
+
+function generateRandom() {
+  // New Visa card number starting with 4
+  const raw = '4'+rnd(15);
+  const fmt = raw.match(/.{1,4}/g).join(' ');
+  // Expiry: 2–5 years out
+  const now  = new Date();
+  const expY = (now.getFullYear() + 2 + Math.floor(Math.random()*4)).toString().slice(-2);
+  const expM = String(Math.floor(Math.random()*12)+1).padStart(2,'0');
+  const cvv  = rnd(3);
+
+  document.getElementById('genNum').value = fmt;
+  document.getElementById('genExp').value = expM+'/'+expY;
+  document.getElementById('genCvv').value = cvv;
+  // Balance = full card amount (new card, no purchases)
+  document.getElementById('genBal').value = parseFloat(selectedAmount).toFixed(2);
+}
+
+// ══════════════════════════════════════════════════
+// GENERATOR — Apply
+// ══════════════════════════════════════════════════
+function applyCard() {
+  const num = document.getElementById('genNum').value.trim();
+  const exp = document.getElementById('genExp').value.trim();
+  const cvv = document.getElementById('genCvv').value.trim();
+  const bal = parseFloat(selectedAmount).toFixed(2);
+
+  if (num.replace(/\s/g,'').length < 13) { alert('Please click 🎲 Random to generate a card first.'); return; }
+  if (!exp || !cvv) { alert('Please click 🎲 Random to generate expiry and CVV.'); return; }
+
+  card.full      = num;
+  card.last4     = num.replace(/\s/g,'').slice(-4);
+  card.expiry    = exp;
+  card.cvv       = cvv;
+  card.balance   = bal;
+  card.original  = bal;
+  card.credits   = bal;
+  card.purchases = '0.00';
+  card.pending   = '0.00';
+  card.shown     = false;
+
+  const pts = exp.split('/');
+  card.bsExp = (pts.length===2 && pts[1].length===2) ? pts[0]+'/20'+pts[1] : exp;
+
+  renderAll();
+  closeGenMenu();
+}
+
+// ══════════════════════════════════════════════════
+// SAVE / RESET
+// ══════════════════════════════════════════════════
+function saveConfig() {
+  try {
+    const toSave = Object.assign({}, card);
+    delete toSave.shown; // don't save reveal state
+    localStorage.setItem('vanillaCardConfig', JSON.stringify(toSave));
+    showNotice('✅ Configuration saved!', '#2a7a2a');
+  } catch(e) {
+    showNotice('❌ Save failed (storage unavailable)', '#cc0000');
+  }
+}
+
+function resetConfig() {
+  try { localStorage.removeItem('vanillaCardConfig'); } catch(e) {}
+  Object.assign(card, DEFAULTS, { shown: false });
+  renderAll();
+  showNotice('↺ Reset to original defaults', '#666');
+}
+
+function showNotice(msg, color) {
+  const el = document.getElementById('saveNotice');
+  el.textContent = msg;
+  el.style.color = color;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+// ══════════════════════════════════════════════════
+// GENERATOR MENU OPEN / CLOSE
+// ══════════════════════════════════════════════════
+function toggleGenMenu(e) {
+  e.stopPropagation();
+  const m=document.getElementById('genMenu'), ov=document.getElementById('overlay');
+  if (m.classList.contains('open')) {
+    m.classList.remove('open'); ov.classList.remove('open');
+  } else {
+    // Pre-select the amount closest to current balance
+    const curBal = parseFloat(card.balance) || 50;
+    const amounts = [25,50,75,100,150,200,250];
+    const closest = amounts.reduce((a,b) => Math.abs(b-curBal)<Math.abs(a-curBal)?b:a, amounts[0]);
+    selectAmount(closest);
+    // Clear generated fields
+    document.getElementById('genNum').value = '';
+    document.getElementById('genExp').value = '';
+    document.getElementById('genCvv').value = '';
+    document.getElementById('saveNotice').textContent = '';
+    m.classList.add('open'); ov.classList.add('open');
+  }
+}
+function closeGenMenu() {
+  document.getElementById('genMenu').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════
+function showTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
